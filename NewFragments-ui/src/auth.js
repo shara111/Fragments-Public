@@ -5,11 +5,12 @@ import { UserManager } from 'oidc-client-ts';
 // Support runtime configuration via window object, fallback to process.env (for Parcel build)
 const AWS_COGNITO_POOL_ID = (typeof window !== 'undefined' && window.AWS_COGNITO_POOL_ID) 
   || process.env.AWS_COGNITO_POOL_ID 
-  || 'us-east-1_g5TXlyiPe';
+
+  || 'YOUR_POOL_ID_HERE';
 
 const AWS_COGNITO_CLIENT_ID = (typeof window !== 'undefined' && window.AWS_COGNITO_CLIENT_ID) 
   || process.env.AWS_COGNITO_CLIENT_ID 
-  || '7nkncraia5ltnasjck840p3dtm';
+  || 'YOUR_CLIENT_ID_HERE';
 
 const OAUTH_SIGN_IN_REDIRECT_URL = (typeof window !== 'undefined' && window.OAUTH_SIGN_IN_REDIRECT_URL) 
   || process.env.OAUTH_SIGN_IN_REDIRECT_URL 
