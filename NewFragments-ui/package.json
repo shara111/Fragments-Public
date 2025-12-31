@@ -1,0 +1,29 @@
+{
+  "name": "newfragments-ui",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Fragments UI testing web app",
+  "scripts": {
+    "start": "parcel index.html --port 1234",
+    "build": "parcel build index.html",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shara111/NewFragments-ui.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/shara111/NewFragments-ui/issues"
+  },
+  "homepage": "https://github.com/shara111/NewFragments-ui#readme",
+  "devDependencies": {
+    "parcel": "^2.15.4"
+  },
+  "dependencies": {
+    "oidc-client-ts": "^3.3.0"
+  }
+}

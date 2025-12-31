@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Fragments UI</title>
+    <link rel="stylesheet" href="https://unpkg.com/bamboo.css" />
+    <style>
+      /* Fragment Cards */
+      .fragments-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+      }
+      
+      .fragment-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        background: #f9f9f9;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
+      .fragment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #ddd;
+      }
+      
+      .fragment-header h4 {
+        margin: 0;
+        color: #333;
+      }
+      
+      .fragment-size {
+        font-size: 0.9em;
+        color: #666;
+      }
+      
+      .fragment-info {
+        margin: 10px 0;
+        font-size: 0.9em;
+      }
+      
+      .fragment-info p {
+        margin: 5px 0;
+      }
+      
+      .fragment-preview {
+        margin: 10px 0;
+        text-align: center;
+      }
+      
+      .fragment-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+      }
+      
+      .fragment-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+      }
+      
+      .fragment-actions button {
+        flex: 1;
+        min-width: 80px;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+      }
+      
+      .btn-view {
+        background: #4CAF50;
+        color: white;
+      }
+      
+      .btn-view:hover {
+        background: #45a049;
+      }
+      
+      .btn-update {
+        background: #2196F3;
+        color: white;
+      }
+      
+      .btn-update:hover {
+        background: #0b7dda;
+      }
+      
+      .btn-convert {
+        background: #FF9800;
+        color: white;
+      }
+      
+      .btn-convert:hover {
+        background: #F57C00;
+      }
+      
+      .btn-delete {
+        background: #f44336;
+        color: white;
+      }
+      
+      .btn-delete:hover {
+        background: #da190b;
+      }
+      
+      /* Modal */
+      .modal {
+        display: block;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.4);
+      }
+      
+      .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+      
+      .close-modal {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      
+      .close-modal:hover,
+      .close-modal:focus {
+        color: #000;
+      }
+      
+      #fragmentContentDisplay {
+        margin-top: 15px;
+        padding: 10px;
+        background: #f5f5f5;
+        border-radius: 4px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      
+      #fragmentContentDisplay pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      
+      .cancel-btn {
+        margin-left: 10px;
+      }
+      
+      #fileInputContainer {
+        display: none;
+      }
+      
+      .create-fragment {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #720b98;
+        border-radius: 8px;
+      }
+      
+      .fragments-list {
+        margin-top: 30px;
+      }
+    </style>
+    <!-- Configure API URL - Use your ECS Load Balancer DNS name -->
+    <script>
+      // Set API URL to your ECS Load Balancer
+      // Get this from: ECS Console -> Clusters -> fragments-cluster -> Services -> fragments-service -> View load balancer
+      // Example: window.API_URL = 'http://fragments-lb-938491946.us-east-1.elb.amazonaws.com';
+      // NOTE: Load balancer uses port 80 (default HTTP port), so no :8080 needed
+      
+      // For local testing, use:
+      // window.API_URL = 'http://localhost:8080';
+      
+      // For ECS deployment, use:
+      // window.API_URL = 'http://fragments-lb-1624512728.us-east-1.elb.amazonaws.com';
+      window.API_URL = 'http://localhost:8080';
+    </script>
+    <script type="module" src="src/app.js"></script>
+  </head>
+  <body>
+    <h1>Fragments UI</h1>
+    <section>
+      <nav>
+        <button id="login">Login</button>
+        <button id="logout" hidden>Logout</button>
+      </nav>
+    </section>
+    <section hidden id="user">
+      <h2>Hello <span class="username"></span>!</h2>
+      
+      <!-- Create Fragment Form -->
+      <div class="create-fragment">
+        <h3>Create New Fragment</h3>
+        <form id="createFragmentForm">
+          <div>
+            <label for="fragmentType">Fragment Type:</label>
+            <select id="fragmentType" required>
+              <option value="text/plain">Text Plain (text/plain)</option>
+              <option value="text/markdown">Markdown (text/markdown)</option>
+              <option value="text/html">HTML (text/html)</option>
+              <option value="text/csv">CSV (text/csv)</option>
+              <option value="application/json">JSON (application/json)</option>
+              <option value="application/yaml">YAML (application/yaml)</option>
+              <option value="image/png">PNG Image (image/png)</option>
+              <option value="image/jpeg">JPEG Image (image/jpeg)</option>
+              <option value="image/webp">WebP Image (image/webp)</option>
+              <option value="image/gif">GIF Image (image/gif)</option>
+            </select>
+          </div>
+          <div>
+            <label for="fragmentText">Content:</label>
+            <textarea id="fragmentText" rows="8" cols="60" placeholder="Enter your fragment content here...&#10;&#10;For JSON: Enter valid JSON like {&quot;key&quot;: &quot;value&quot;}&#10;For Markdown: Use markdown syntax like # Heading&#10;For CSV: Enter comma-separated values"></textarea>
+          </div>
+          <div id="fileInputContainer">
+            <label for="fragmentFile">Image File:</label>
+            <input type="file" id="fragmentFile" accept="image/*" />
+          </div>
+          <button type="submit">Create Fragment</button>
+        </form>
+        <div id="createStatus" style="margin-top: 10px;"></div>
+      </div>
+      
+      <!-- Fragments List -->
+      <div class="fragments-list">
+        <h3>Your Fragments</h3>
+        <div id="fragmentsContainer">
+          <p>No fragments yet. Create one above!</p>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

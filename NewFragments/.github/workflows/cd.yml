@@ -1,0 +1,129 @@
+# Continuous Delivery Workflow
+#
+# This should happen whenever we push a new tag, and we tag an existing
+# commit after we know it's good (e.g., has been tested).
+#
+# To create a new tag, we also need to update the package.json version:
+#
+# $ npm version 0.5.0
+#
+# This will update `version` in package.json to `0.5.0` and create a new
+# tag, `v0.5.0` in git. We'll then use this tag (i.e., `v0.5.0`) to tag
+# our docker image before we push to AWS.
+name: cd
+
+on:
+  push:
+    # Whenever a new tag is pushed
+    tags:
+      # Any tag starting with v... should trigger this workflow
+      - 'v**'
+
+jobs:
+  # NOTE: this assumes our CI jobs have already passed previously
+  # (i.e., that we don't tag a commit manually until we know a build is working)
+  aws:
+    name: AWS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # Use buildx, which is faster and can optimize the build steps
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # NOTE: ending and restarting the Learner Lab will void these secrets,
+      # update them if you are doing this during a new session:
+      # `Error: The security token included in the request is expired`
+      - name: Configure AWS Credentials using Secrets
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Use our GitHub Encrypted Secrets via secrets.*
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          # Hard-code our region, which isn't a secret, and won't change
+          aws-region: us-east-1
+
+      # Login to Docker Hub using GitHub secrets
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build and Push an Image to Docker Hub
+      - name: Build and push to Docker Hub
+        env:
+          # Define an Environment Variable with our Docker Hub Repo
+          DOCKERHUB_REPO: shara111/newfragments
+          # We'll give this image two different tags. First, we'll use the git tag (vX.Y.Z)
+          # so that we can always go back and re-create this setup again in the future
+          # if we have to test or debug something. Second, we'll also replace the
+          # `latest` tag, since this is our most up-to-date version.
+          VERSION_TAG: ${{ github.ref_name }}
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          # Build for linux/amd64 platform (required for ECS Fargate)
+          platforms: linux/amd64
+          # Use the git tag version and `latest`
+          tags: ${{ env.DOCKERHUB_REPO }}:${{ env.VERSION_TAG }},${{ env.DOCKERHUB_REPO }}:latest
+
+      # We need to update our fragment's Task Definition JSON
+      # (i.e., fragments-definition.json) to use the newly
+      # updated Docker Image to use (i.e., the tag we just pushed to Docker Hub).
+      # We can also update/set the environment variables if we want.
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: update-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        env:
+          DOCKERHUB_REPO: shara111/newfragments
+          VERSION_TAG: ${{ github.ref_name }}
+        with:
+          task-definition: fragments-definition.json
+          container-name: fragments-container
+          # Use the image we just built and pushed to Docker Hub for this tag
+          image: ${{ env.DOCKERHUB_REPO }}:${{ env.VERSION_TAG }}
+          # Add all the necessary environment variables, using GitHub Encrypted Secrets
+          # for any values that should not be checked into git directly.
+          environment-variables: |
+            LOG_LEVEL=info
+            NODE_ENV=production
+            PORT=80
+            AWS_REGION=us-east-1
+            AWS_COGNITO_POOL_ID=${{ secrets.AWS_COGNITO_POOL_ID }}
+            AWS_COGNITO_CLIENT_ID=${{ secrets.AWS_COGNITO_CLIENT_ID }}
+            API_URL=${{ secrets.API_URL }}
+            AWS_S3_BUCKET_NAME=shara1-newfragments
+            AWS_DYNAMODB_TABLE_NAME=fragments
+
+      # Output the rendered task definition for manual deployment
+      # NOTE: Learner Lab doesn't allow registering new task definitions via API,
+      # so we'll output the task definition JSON for manual deployment
+      - name: Output task definition for manual deployment
+        run: |
+          echo "::notice::Task definition rendered successfully"
+          echo "::notice::Due to Learner Lab permissions, please manually update the task definition in ECS Console"
+          echo "::notice::New image: shara111/newfragments:${{ github.ref_name }}"
+          echo ""
+          echo "To deploy manually:"
+          echo "1. Go to ECS Console -> Task Definitions -> fragments-task"
+          echo "2. Create new revision"
+          echo "3. Update container image to: shara111/newfragments:${{ github.ref_name }}"
+          echo "4. Verify all environment variables are set correctly"
+          echo "5. Create new revision"
+          echo "6. Go to Services -> fragments-service -> Update"
+          echo "7. Select the new task definition revision"
+          echo "8. Force new deployment -> Update"
+      
+      # Skip automated deployment - Learner Lab doesn't allow ECS task definition registration
+      # The image has been pushed to Docker Hub successfully
+      # Please deploy manually using the instructions above
+      - name: Skip automated deployment
+        run: |
+          echo "::warning::Skipping automated ECS deployment due to Learner Lab permissions"
+          echo "::warning::Image successfully pushed to Docker Hub: shara111/newfragments:${{ github.ref_name }}"
+          echo "::warning::Please deploy manually using the instructions in the previous step"
+

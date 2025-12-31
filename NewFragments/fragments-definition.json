@@ -1,0 +1,82 @@
+{
+    "containerDefinitions": [
+        {
+            "cpu": 256,
+            "environment": [
+                {
+                    "name": "NODE_ENV",
+                    "value": "production"
+                },
+                {
+                    "name": "AWS_REGION",
+                    "value": "us-east-1"
+                },
+                {
+                    "name": "AWS_COGNITO_POOL_ID",
+                    "value": "us-east-1_g5TXlyiPe"
+                },
+                {
+                    "name": "PORT",
+                    "value": "80"
+                },
+                {
+                    "name": "LOG_LEVEL",
+                    "value": "debug"
+                },
+                {
+                    "name": "AWS_COGNITO_CLIENT_ID",
+                    "value": "7nkncraia5ltnasjck840p3dtm"
+                },
+                {
+                    "name": "AWS_S3_BUCKET_NAME",
+                    "value": "shara1-newfragments"
+                },
+                {
+                    "name": "AWS_DYNAMODB_TABLE_NAME",
+                    "value": "fragments"
+                }
+            ],
+            "environmentFiles": [],
+            "essential": true,
+            "image": "shara111/newfragments:latest",
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/fragments-task",
+                    "awslogs-create-group": "true",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                },
+                "secretOptions": []
+            },
+            "memoryReservation": 512,
+            "mountPoints": [],
+            "name": "fragments-container",
+            "portMappings": [
+                {
+                    "appProtocol": "http",
+                    "containerPort": 80,
+                    "hostPort": 80,
+                    "name": "fragments-container-80-tcp",
+                    "protocol": "tcp"
+                }
+            ],
+            "systemControls": [],
+            "ulimits": [],
+            "volumesFrom": []
+        }
+    ],
+    "cpu": "256",
+    "executionRoleArn": "arn:aws:iam::730335226853:role/LabRole",
+    "family": "fragments-task",
+    "memory": "512",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+    },
+    "taskRoleArn": "arn:aws:iam::730335226853:role/LabRole"
+}
